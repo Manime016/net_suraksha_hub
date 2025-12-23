@@ -1,32 +1,34 @@
 import express from "express";
 import cors from "cors";
-import morgan from "morgan";
+import path from "path"; // Add this
+import { fileURLToPath } from "url"; // Add this
 import authRoutes from "./routes/authRoutes.js";
-import User from "./models/User.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import complaintRoutes from "./routes/complaintRoutes.js";
+import courseRoutes from "./routes/courseRoutes.js";
+import testRoutes from "./routes/testRoutes.js";
+import certificateRoutes from "./routes/certificateRoutes.js";
 
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Middlewares
-app.use(express.json());  // ← THIS IS REQUIRED
 app.use(cors());
+app.use(express.json());
 
-app.use(morgan("dev"));
+// 🛠️ FIX 1: Make uploads folder accessible
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
 app.use("/api/auth", authRoutes);
-app.get("/api/auth/users", async (req, res) => {
-    try {
-        const users = await User.find().select("-password");
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ message: "Server error" });
-    }
-});
-// Health check
-app.get("/", (req, res) => {
-    res.send("Backend running ✅");
-});
+app.use("/api/admin", adminRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/complaints", complaintRoutes);
+app.use("/api/tests", testRoutes);
+app.use("/api/certificates", certificateRoutes);
+app.use("/api/courses", courseRoutes);
+
 
 export default app;

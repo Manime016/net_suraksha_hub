@@ -1,12 +1,26 @@
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ShieldCheck, Eye, EyeOff, Lock, Mail, ChevronLeft, Fingerprint, AlertCircle } from "lucide-react";
+import {
+    ShieldCheck,
+    Eye,
+    EyeOff,
+    Lock,
+    Mail,
+    ChevronLeft,
+    Fingerprint,
+    AlertCircle
+} from "lucide-react";
 import { useState } from "react";
+import { loginApi } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
+
 
 const Login = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const role = searchParams.get("role") || "user";
+
+    const { login } = useAuth();
 
     // States
     const [showPassword, setShowPassword] = useState(false);
@@ -14,23 +28,29 @@ const Login = () => {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        setError(""); // Reset error
+        setError("");
 
-        // --- DUMMY AUTH LOGIC ---
-        if (role === "admin") {
-            if (email === "admin@test.com" && password === "admin123") {
+        try {
+            const res = await loginApi({
+                email,
+                password
+            });
+
+            // Save token + role
+            login(res.data.token, res.data.role, res.data.name);
+
+
+            // Redirect based on backend role
+            if (res.data.role === "admin") {
                 navigate("/admin-dashboard");
             } else {
-                setError("Invalid Admin Credentials (admin@test.com / admin123)");
-            }
-        } else {
-            if (email === "user@test.com" && password === "password123") {
                 navigate("/user-dashboard");
-            } else {
-                setError("Invalid User Credentials (user@test.com / password123)");
             }
+
+        } catch (err) {
+            setError(err.response?.data?.message || "Login failed");
         }
     };
 
@@ -45,12 +65,18 @@ const Login = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="relative w-full max-w-md"
             >
-                <Link to="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-emerald-400 text-xs font-bold uppercase tracking-widest mb-8 transition-colors group">
-                    <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Back to Terminal
+                <Link
+                    to="/"
+                    className="inline-flex items-center gap-2 text-slate-500 hover:text-emerald-400 text-xs font-bold uppercase tracking-widest mb-8 transition-colors group"
+                >
+                    <ChevronLeft
+                        size={16}
+                        className="group-hover:-translate-x-1 transition-transform"
+                    />{" "}
+                    Back to Terminal
                 </Link>
 
                 <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-
                     <div className="flex flex-col items-center mb-10 pt-4">
                         <div className="w-16 h-16 bg-slate-800 border border-emerald-500/30 rounded-2xl flex items-center justify-center mb-6">
                             <Fingerprint className="text-emerald-500" size={32} />
@@ -73,14 +99,19 @@ const Login = () => {
 
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Identity</label>
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">
+                                Identity
+                            </label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-emerald-500" size={18} />
+                                <Mail
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-emerald-500"
+                                    size={18}
+                                />
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder={role === "admin" ? "admin@test.com" : "user@test.com"}
+                                    placeholder="Enter your email"
                                     className="w-full bg-slate-950/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:border-emerald-500/50"
                                     required
                                 />
@@ -88,9 +119,14 @@ const Login = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Access Key</label>
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">
+                                Access Key
+                            </label>
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-emerald-500" size={18} />
+                                <Lock
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-emerald-500"
+                                    size={18}
+                                />
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     value={password}
@@ -119,7 +155,7 @@ const Login = () => {
 
                     <div className="mt-8 pt-8 border-t border-white/5 text-center">
                         <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.3em]">
-                            Hint: use test credentials provided in code
+                            Secure Authentication Enabled
                         </p>
                     </div>
                 </div>

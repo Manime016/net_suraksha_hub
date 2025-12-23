@@ -1,108 +1,142 @@
-import React from "react";
-import {
-    Activity,
-    Key,
-    CheckCircle,
-    XCircle,
-    UserCheck,
-    History,
-    Lock
-} from "lucide-react";
-import { motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Award, ShieldCheck, Mail, Lock, XCircle, CheckCircle2, Clock } from "lucide-react";
 
-const ApproveTests = () => {
-    const requests = [
-        { id: "REQ-992", name: "Vikas Khanna", modules: "14/14", avgScore: "88%", timeSpent: "14h 20m", status: "Eligible" },
-        { id: "REQ-995", name: "Ananya Roy", modules: "14/14", avgScore: "92%", timeSpent: "18h 05m", status: "Eligible" }
-    ];
+const API_BASE_URL = "http://localhost:5000";
+
+const ApproveCertificates = () => {
+    const [requests, setRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [view, setView] = useState("pending"); // Toggle between "pending" and "approved"
+
+    // 1. Unified Fetching Logic
+    const fetchData = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get(`${API_BASE_URL}/api/admin/pending-certificates`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            // This now contains ALL certificates with their status (PENDING/APPROVED)
+            setRequests(res.data);
+        } catch (err) {
+            console.error("Fetch error:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    // 2. Action Logic (Approving/Rejecting)
+    const handleAction = async (action, certId) => {
+        try {
+            const token = localStorage.getItem("token");
+
+            // Matches backend route: /api/admin/approve-certificate
+            await axios.post(
+                `${API_BASE_URL}/api/admin/${action}-certificate`,
+                { certificateId: certId }, // Sending the correct key for the backend
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            // REFRESH: This moves the student from Pending to Approved tab
+            fetchData();
+        } catch (err) {
+            console.error("Action error:", err.response);
+            alert(`Action failed: ${err.response?.data?.message || "Check server connection"}`);
+        }
+    };
+
+    // 3. Local Filtering based on the current Tab
+    const filteredData = requests.filter(req =>
+        view === "pending" ? req.status === "PENDING" : req.status === "APPROVED"
+    );
+
+    if (loading) return <div className="p-10 text-blue-500 font-bold animate-pulse">LOADING DATA...</div>;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">
-                        Test <span className="text-blue-500">Authorization</span>
-                    </h1>
-                    <p className="text-slate-500 text-xs mt-1 font-mono uppercase">Vetting node eligibility for final assessment</p>
-                </div>
-                <div className="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-full flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">02 Requests Pending</span>
-                </div>
-            </div>
+        <div className="space-y-8">
+            <div className="flex justify-between items-center border-b border-white/5 pb-6">
+                <h1 className="text-3xl font-black text-white uppercase italic">
+                    Certificate <span className="text-blue-500">Vault</span>
+                </h1>
 
-            {/* Request Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {requests.map((req, index) => (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        key={req.id}
-                        className="bg-slate-900/40 border border-white/10 rounded-[2rem] p-8 relative overflow-hidden group hover:border-blue-500/30 transition-all"
+                {/* TAB TOGGLE SYSTEM */}
+                <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-white/10">
+                    <button
+                        onClick={() => setView("pending")}
+                        className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${view === 'pending' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-500 hover:text-white'}`}
                     >
-                        {/* Background Decoration */}
-                        <div className="absolute -top-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <Lock size={150} className="text-blue-400" />
-                        </div>
-
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
-                                    <UserCheck size={28} />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white tracking-tight">{req.name}</h3>
-                                    <p className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">{req.id}</p>
-                                </div>
-                            </div>
-                            <span className="text-xs font-mono text-blue-500 bg-blue-500/5 px-3 py-1 rounded-md border border-blue-500/10">
-                                ELIGIBILITY: OK
-                            </span>
-                        </div>
-
-                        {/* Metrics Grid */}
-                        <div className="grid grid-cols-3 gap-4 mb-8">
-                            <div className="bg-slate-950 p-3 rounded-xl border border-white/5 text-center">
-                                <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Learning</p>
-                                <p className="text-sm font-bold text-white">{req.modules}</p>
-                            </div>
-                            <div className="bg-slate-950 p-3 rounded-xl border border-white/5 text-center">
-                                <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Avg Score</p>
-                                <p className="text-sm font-bold text-emerald-400">{req.avgScore}</p>
-                            </div>
-                            <div className="bg-slate-950 p-3 rounded-xl border border-white/5 text-center">
-                                <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Time Sync</p>
-                                <p className="text-sm font-bold text-blue-400">{req.timeSpent}</p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <button className="flex-1 py-4 bg-blue-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2">
-                                <Key size={16} /> Grant Access Key
-                            </button>
-                            <button className="px-6 py-4 bg-slate-800 border border-white/5 text-red-500 rounded-2xl hover:bg-red-500/10 hover:border-red-500/20 transition-all group">
-                                <XCircle size={20} className="group-hover:scale-110 transition-transform" />
-                            </button>
-                        </div>
-
-                        <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-center gap-6">
-                            <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                <History size={12} /> View Log History
-                            </div>
-                        </div>
-                    </motion.div>
-                ))}
+                        Pending Requests
+                    </button>
+                    <button
+                        onClick={() => setView("approved")}
+                        className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${view === 'approved' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        Approved Vault
+                    </button>
+                </div>
             </div>
 
-            {/* Authorization Policy Note */}
-            <div className="p-6 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
-                <p className="text-[10px] text-blue-400/80 leading-relaxed font-medium uppercase tracking-widest">
-                    <span className="font-black text-blue-400">Admin Protocol:</span> Granting an access key authorizes the user to proceed to the Final Verified Assessment. Ensure the user has met the 100% module completion requirement before approval.
-                </p>
-            </div>
+            {filteredData.length === 0 ? (
+                <div className="py-20 text-center bg-slate-900/20 rounded-3xl border border-dashed border-white/5">
+                    <p className="text-slate-500 font-bold uppercase tracking-widest">No {view} records found</p>
+                </div>
+            ) : (
+                <div className="grid gap-4">
+                    {filteredData.map(req => {
+                        const isEligible = req.percentage >= 80;
+                        return (
+                            <div key={req._id} className="p-8 bg-slate-900/40 border border-white/5 rounded-3xl flex justify-between items-center group hover:border-blue-500/30 transition-all">
+                                <div className="flex gap-6 items-center">
+                                    <div className={`p-4 rounded-2xl ${view === 'pending' ? 'bg-blue-500/10' : 'bg-emerald-500/10'}`}>
+                                        <Award className={view === 'pending' ? "text-blue-500" : "text-emerald-500"} size={32} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-white text-lg font-bold">{req.user?.name || "Student"}</h4>
+                                        <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">
+                                            {req.course?.title} • <span className={isEligible ? "text-emerald-500" : "text-red-500"}>Score: {req.percentage}%</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    {view === "pending" ? (
+                                        <>
+                                            <button
+                                                disabled={!isEligible}
+                                                onClick={() => handleAction("approve", req._id)}
+                                                className={`flex items-center gap-2 px-6 py-2.5 text-[10px] font-black uppercase rounded-xl transition-all
+                                                    ${isEligible ? "bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20" : "bg-slate-800 text-slate-500 cursor-not-allowed"}`}
+                                            >
+                                                {isEligible ? <ShieldCheck size={14} /> : <Lock size={14} />}
+                                                {isEligible ? "Approve" : "Low Score"}
+                                            </button>
+                                            <button
+                                                onClick={() => handleAction("reject", req._id)}
+                                                className="p-3 bg-red-600/10 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                                            >
+                                                <XCircle size={18} />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                                            <CheckCircle2 size={14} /> Verified & Issued
+                                        </div>
+                                    )}
+                                    <button className="p-3 bg-slate-800 rounded-xl text-slate-500 hover:text-white border border-white/5">
+                                        <Mail size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 };
 
-export default ApproveTests;
+export default ApproveCertificates;

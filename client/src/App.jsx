@@ -14,33 +14,37 @@ import StudyMaterial from "./pages/user/StudyMaterial";
 import Certificate from "./pages/user/Certificate";
 import Test from "./pages/user/Test";
 
-
-// Admin pages
+// Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageComplaints from "./pages/admin/ManageComplaints";
+import ManageStudyMaterial from "./pages/admin/ManageCourses"; // 📚 Add this
 import UserProgress from "./pages/admin/UserProgress";
 import ApproveTests from "./pages/admin/ApproveTests";
 import ApproveCertificates from "./pages/admin/ApproveCertificates";
+import AddAdmin from './pages/admin/AddAdmin';
+
+// Auth
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
+        {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* User Protected Routes with Shared Layout */}
-        <Route path="/user-dashboard" element={<UserLayout />}>
-          {/* This is the index route. 
-              When the user visits /user-dashboard, it renders UserDashboard 
-          */}
+        {/* ================= USER ROUTES ================= */}
+        <Route
+          path="/user-dashboard"
+          element={
+            <ProtectedRoute role="user">
+              <UserLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<UserDashboard />} />
-
-          {/* These are child routes. 
-              They render INSIDE the UserLayout's <Outlet /> 
-          */}
           <Route path="raise" element={<RaiseComplaint />} />
           <Route path="status" element={<ComplaintStatus />} />
           <Route path="study" element={<StudyMaterial />} />
@@ -48,14 +52,22 @@ function App() {
           <Route path="certificates" element={<Certificate />} />
         </Route>
 
-        {/* Admin Routes */}
-        {/* Admin Side */}
-        <Route path="/admin-dashboard" element={<UserLayout isAdmin={true} />}>
+        {/* ================= ADMIN ROUTES ================= */}
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute role="admin">
+              <UserLayout isAdmin={true} />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<AdminDashboard />} />
           <Route path="complaints" element={<ManageComplaints />} />
+          <Route path="/admin-dashboard/materials" element={<ManageStudyMaterial />} />
           <Route path="progress" element={<UserProgress />} />
           <Route path="tests" element={<ApproveTests />} />
           <Route path="certificates" element={<ApproveCertificates />} />
+          <Route path="/admin-dashboard/add-admin" element={<AddAdmin />} />
         </Route>
       </Routes>
     </BrowserRouter>

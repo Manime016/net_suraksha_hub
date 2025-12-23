@@ -1,29 +1,25 @@
 import express from "express";
-import { register, login } from "../controllers/authController.js";
-import { protect } from "../middleware/authMiddleware.js";
-import User from "../models/User.js";
-
+import { login, register } from "../controllers/authController.js";
+import auth from "../middleware/authMiddleware.js";
+import User from "../models/User.js"
 const router = express.Router();
 
-// Registration
-router.post("/register", register);
-
-// Login
+// LOGIN
 router.post("/login", login);
 
-// Protected route
-router.get("/profile", protect, (req, res) => {
-    res.json({ message: "This is a protected route", user: req.user });
-});
+// REGISTER
+router.post("/register", register);
 
-// Temporary route to list users (for testing)
-router.get("/users", async (req, res) => {
-    try {
-        const users = await User.find().select("-password");
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ message: "Server error" });
-    }
-});
+router.get("/me", auth, async (req, res) => {
+    const user = await User.findById(req.user.id).select("name email role");
 
+    res.json({
+        name: user.name,
+        email: user.email,
+        role: user.role
+    });
+});
 export default router;
+
+
+
